@@ -1,38 +1,34 @@
 #!/usr/bin/env python3
-""" Module of Index views
-"""
-from flask import jsonify, abort
-from api.v1.views import app_views
+""" Auth class, Require auth with stars """
+from flask import request
+from typing import List, TypeVar
 
 
-@app_views.route('/status', methods=['GET'], strict_slashes=False)
-def status() -> str:
-    """ GET /api/v1/status
-    Return:
-      - the status of the API
-    """
-    return jsonify({"status": "OK"})
+class Auth():
+    """ manage the API authentication """
+    def require_auth(self, path: str, excluded_paths: List[str]) -> bool:
+        """ require authorithation """
+        if path is None or excluded_paths is None or not len(excluded_paths):
+            return True
+        if path[-1] != '/':
+            path += '/'
+        for i in excluded_paths:
+            if i.endswith('*'):
+                if path.startswith(i[:1]):
+                    return False
+        if path in excluded_paths:
+            return False
+        else:
+            return True
 
+    def authorization_header(self, request=None) -> str:
+        """ authorization header """
+        if request is None:
+            return None
+        if not request.headers.get("Authorization"):
+            return None
+        return request.headers.get("Authorization")
 
-@app_views.route('/unauthorized', methods=['GET'], strict_slashes=False)
-def unauthorized() -> str:
-    """ endpoint to testing (unauthorized) 401 error handler """
-    abort(401)
-
-
-@app_views.route('/forbidden', methods=['GET'], strict_slashes=False)
-def forbidden() -> str:
-    """ endpoint to testing (forbidden) 403 error handler """
-    abort(403)
-
-
-@app_views.route('/stats/', strict_slashes=False)
-def stats() -> str:
-    """ GET /api/v1/stats
-    Return:
-      - the number of each objects
-    """
-    from models.user import User
-    stats = {}
-    stats['users'] = User.count()
-    return jsonify(stats)
+    def current_user(self, request=None) -> TypeVar('User'):
+        """ current user """
+        return None
